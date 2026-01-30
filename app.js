@@ -84,7 +84,7 @@ const CATEGORIES = [
 const PARTS = CATEGORIES.flatMap((c) => c.parts);
 
 // ========== STATE ==========
-let currentUser = null, // will store FULL EMAIL now
+let currentUser = null, // FULL EMAIL
   userRole = null,
   schools = [],
   currentSchool = null,
@@ -138,7 +138,7 @@ function restoreSelection(prevSchoolId, prevKitId) {
 
 // ========== STORAGE (Supabase) ==========
 const loadData = async () => {
-  // Schools (NOTE: includes user_id now)
+  // Schools (includes user_id so we can filter)
   let { data: schoolRows, error: sErr } = await db
     .from("schools")
     .select("school_id,user_id,name,start_deadline,end_deadline,created_at")
@@ -152,15 +152,12 @@ const loadData = async () => {
     return;
   }
 
-  // 🔴 TEMP (DEMO ONLY): frontend filtering for instructors
-  // Requires:
-  // - users.email = full email
-  // - schools.user_id points to users.user_id
+  // ✅ DEMO FILTER: instructor only sees their own schools (by schools.user_id)
   if (userRole === "instructor") {
     const { data: userRows, error: uErr } = await db
       .from("users")
       .select("user_id")
-      .eq("email", currentUser) // currentUser is FULL EMAIL now
+      .eq("email", currentUser) // MUST be full email
       .limit(1);
 
     if (uErr) {
@@ -172,11 +169,7 @@ const loadData = async () => {
     }
 
     const myUserId = userRows?.[0]?.user_id;
-    if (!myUserId) {
-      schoolRows = [];
-    } else {
-      schoolRows = (schoolRows || []).filter((s) => s.user_id === myUserId);
-    }
+    schoolRows = myUserId ? (schoolRows || []).filter((s) => s.user_id === myUserId) : [];
   }
 
   // Kits
@@ -231,6 +224,12 @@ const loadData = async () => {
       end: pc.end_actual ?? "",
     };
   });
+
+  // ✅ Safety: if filtered schools removed the currently-selected school, clear selection
+  if (currentSchool && !schools.some((s) => s.id === currentSchool.id)) {
+    currentSchool = null;
+    currentKit = null;
+  }
 };
 
 // keep this so existing calls don't break
@@ -1009,16 +1008,20 @@ document.querySelectorAll(".modal-overlay").forEach((m) =>
 );
 
 // ========== INIT ==========
+// NOTE: we DO NOT call loadData() before we restore saved user/role.
+// Calling it too early would load unfiltered data (userRole/currentUser are null).
 (async () => {
-  await loadData();
-
   const savedUser = localStorage.getItem("js_user"),
     savedRole = localStorage.getItem("js_role");
 
   if (savedUser && savedRole) {
-    currentUser = savedUser;
+    currentUser = savedUser; // full email
     userRole = savedRole;
+
+    await loadData();
     showScreen("school-screen");
+  } else {
+    showScreen("login-screen");
   }
 })();
 
