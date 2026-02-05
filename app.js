@@ -21,12 +21,12 @@ const CATEGORIES = [
     parts: [
       { id: "large_hub", name: "Large Hub", expected: 1, image: "Parts_Images/largehub.png" },
       { id: "hub_battery", name: "Hub Battery", expected: 1, image: "Parts_Images/Hubbattery.png" },
-      { id: "medium_motor", name: "Medium Motor", expected: 2, image: "Parts_Images/mediummotor.png" },
-      { id: "large_motor", name: "Large Motor", expected: 1, image: "Parts_Images/largemotor.png" },
-      { id: "color_sensor", name: "Color Sensor", expected: 1, image: "Parts_Images/cs.png" },
-      { id: "distance_sensor", name: "Distance Sensor", expected: 1, image: "Parts_Images/distancesensor.png" },
-      { id: "force_sensor", name: "Force Sensor", expected: 1, image: "Parts_Images/forcesensor.png" },
-      { id: "micro_usb", name: "USB Cable", expected: 1, image: "Parts_Images/usbcable.png" },
+      { id: "medium_motor", name: "Medium Motor", expected: 2, image: "Parts_Images/mediummotor.webp" },
+      { id: "large_motor", name: "Large Motor", expected: 1, image: "Parts_Images/largemotor.webp" },
+      { id: "color_sensor", name: "Color Sensor", expected: 1, image: "Parts_Images/cs.webp" },
+      { id: "distance_sensor", name: "Distance Sensor", expected: 1, image: "Parts_Images/distancesensor.webp" },
+      { id: "force_sensor", name: "Force Sensor", expected: 1, image: "Parts_Images/forcesensor.webp" },
+      { id: "micro_usb", name: "USB Cable", expected: 1, image: "Parts_Images/usbcable.webp" },
     ],
   },
   {
