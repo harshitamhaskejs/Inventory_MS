@@ -384,8 +384,22 @@ function renderSchools() {
   if (!schools.length) {
     list.innerHTML = "";
     empty.style.display = "block";
+
+    // hide add school button for instructors
+    const btn = document.getElementById("add-school-empty-btn");
+    const text = document.getElementById("school-empty-text");
+
+    if (isAdmin()) {
+      btn.style.display = "inline-block";
+      text.textContent = "No schools yet";
+    } else {
+      btn.style.display = "none";
+      text.textContent = "No schools assigned to you yet";
+    }
+
     return;
   }
+
 
   empty.style.display = "none";
   list.innerHTML = schools
@@ -600,7 +614,7 @@ async function deleteCurrentSchool() {
 
 // ========== KITS ==========
 function updateKitUI() {
-  document.getElementById("add-kit-btn").style.display = isAdmin() ? "block" : "none";
+  document.getElementById("add-kit-btn").style.display = "block";
   document.getElementById("school-settings-btn").style.display = isAdmin() ? "block" : "none";
 
   const alert = document.getElementById("kit-deadline-alert");

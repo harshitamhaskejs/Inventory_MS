@@ -522,7 +522,7 @@
       </div>
       <div class="list-container" id="school-list"></div>
       <div id="school-empty" class="empty-state" style="display:none;">
-        <p>No schools yet</p>
+        <p id="school-empty-text">No schools yet</p>
         <button
           class="btn"
           id="add-school-empty-btn"
@@ -531,6 +531,7 @@
           + Add School
         </button>
       </div>
+
       <div class="footer">
         <button class="btn" id="add-school-btn" style="margin-bottom:12px;" onclick="openModal('add-school-modal')">+ Add School</button>
         <button class="logout-btn" onclick="logout()">
