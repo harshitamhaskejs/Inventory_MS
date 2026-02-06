@@ -90,6 +90,9 @@ let currentUser = null, // FULL EMAIL
   currentSchool = null,
   currentKit = null;
 
+let currentUserId = null;
+let currentUserActive = true;
+
 // key: `${kitId}|${partId}` -> { start, end }
 let inventoryData = {},
   pendingChanges = {},
@@ -132,13 +135,59 @@ function parseInvKey(key) {
 
 function restoreSelection(prevSchoolId, prevKitId) {
   if (prevSchoolId) currentSchool = schools.find((s) => s.id === prevSchoolId) || null;
-  if (currentSchool && prevKitId)
-    currentKit = currentSchool.kits.find((k) => k.id === prevKitId) || null;
+  if (currentSchool && prevKitId) currentKit = currentSchool.kits.find((k) => k.id === prevKitId) || null;
+}
+
+// ========== USERS (ensure row exists, read active) ==========
+async function ensureCurrentUserId() {
+  currentUserId = null;
+  currentUserActive = true;
+
+  if (!currentUser) return null;
+
+  // 1) try select
+  {
+    const { data, error } = await db
+      .from("users")
+      .select("user_id,is_active,role")
+      .eq("email", currentUser)
+      .limit(1);
+
+    if (!error) {
+      const row = data?.[0];
+      if (row?.user_id) {
+        currentUserId = row.user_id;
+        currentUserActive = row.is_active ?? true;
+        return currentUserId;
+      }
+    } else {
+      console.warn("users select blocked:", error.message);
+    }
+  }
+
+  // 2) create/upsert if not found
+  {
+    const { data, error } = await db
+      .from("users")
+      .upsert({ email: currentUser, role: userRole || "instructor", is_active: true }, { onConflict: "email" })
+      .select("user_id,is_active")
+      .limit(1);
+
+    if (error) {
+      console.warn("users upsert blocked:", error.message);
+      return null;
+    }
+
+    const row = data?.[0];
+    currentUserId = row?.user_id || null;
+    currentUserActive = row?.is_active ?? true;
+    return currentUserId;
+  }
 }
 
 // ========== STORAGE (Supabase) ==========
 const loadData = async () => {
-  // Schools (includes user_id so we can filter)
+  // Schools
   let { data: schoolRows, error: sErr } = await db
     .from("schools")
     .select("school_id,user_id,name,start_deadline,end_deadline,created_at")
@@ -152,24 +201,12 @@ const loadData = async () => {
     return;
   }
 
-  // ✅ DEMO FILTER: instructor only sees their own schools (by schools.user_id)
+  // FRONTEND VISIBILITY RULE:
+  // - admin: sees all schools
+  // - instructor: sees only schools where schools.user_id == currentUserId
   if (userRole === "instructor") {
-    const { data: userRows, error: uErr } = await db
-      .from("users")
-      .select("user_id")
-      .eq("email", currentUser) // MUST be full email
-      .limit(1);
-
-    if (uErr) {
-      console.error(uErr);
-      alert("Load user failed: " + uErr.message);
-      schools = [];
-      inventoryData = {};
-      return;
-    }
-
-    const myUserId = userRows?.[0]?.user_id;
-    schoolRows = myUserId ? (schoolRows || []).filter((s) => s.user_id === myUserId) : [];
+    const myId = currentUserId;
+    schoolRows = myId ? (schoolRows || []).filter((s) => s.user_id === myId) : [];
   }
 
   // Kits
@@ -186,10 +223,10 @@ const loadData = async () => {
     return;
   }
 
-  // Part counts (directly linked to kit_id)
+  // Part counts
   const { data: partCountRows, error: pcErr } = await db
     .from("part_counts")
-    .select("kit_id,part_id,start_actual,end_actual");
+    .select("kit_id,part_id,start_actual,end_actual,last_updated_by,last_updated_at");
 
   if (pcErr) {
     console.error(pcErr);
@@ -216,7 +253,7 @@ const loadData = async () => {
     kits: kitsBySchool[s.school_id] || [],
   }));
 
-  // Flatten counts: kitId|partId
+  // Flatten counts
   inventoryData = {};
   (partCountRows || []).forEach((pc) => {
     inventoryData[invKey(pc.kit_id, pc.part_id)] = {
@@ -225,7 +262,6 @@ const loadData = async () => {
     };
   });
 
-  // ✅ Safety: if filtered schools removed the currently-selected school, clear selection
   if (currentSchool && !schools.some((s) => s.id === currentSchool.id)) {
     currentSchool = null;
     currentKit = null;
@@ -235,16 +271,23 @@ const loadData = async () => {
 // keep this so existing calls don't break
 const saveData = () => {};
 
-// ========== AUTH ==========
+// ========== AUTH (PASSWORD-ONLY UI) ==========
 function logout() {
   if (hasUnsavedChanges && !confirm("Unsaved changes will be lost. Continue?")) return;
+
   currentUser = userRole = null;
+  currentUserId = null;
+  currentUserActive = true;
+
   currentSchool = null;
   currentKit = null;
+
   localStorage.removeItem("js_user");
   localStorage.removeItem("js_role");
+
   document.getElementById("email-input").value = "";
   document.getElementById("password-input").value = "";
+
   showScreen("login-screen");
 }
 
@@ -278,10 +321,80 @@ function updateRoleBadge() {
   b.textContent = isAdmin() ? "Admin" : "Instructor";
   b.className = "role-badge " + userRole;
 
-  // show username nicely, while currentUser stores full email
   document.getElementById("user-display").textContent = (currentUser || "").split("@")[0];
 
-  document.getElementById("add-school-btn").style.display = isAdmin() ? "block" : "none";
+  // ✅ remove/hide Add School button for instructors (and kill click)
+  const addBtn = document.getElementById("add-school-btn");
+  if (addBtn) {
+    if (isAdmin()) {
+      addBtn.style.display = "block";
+      addBtn.disabled = false;
+      addBtn.style.pointerEvents = "auto";
+      addBtn.onclick = addBtn.onclick || null;
+    } else {
+      addBtn.style.display = "none";
+      addBtn.disabled = true;
+      addBtn.style.pointerEvents = "none";
+      addBtn.onclick = (e) => {
+        if (e) e.preventDefault();
+        return false;
+      };
+    }
+  }
+
+  // Admin-only Manage Instructors button (created once)
+  if (isAdmin()) {
+    let btn = document.getElementById("manage-instructors-btn");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = "manage-instructors-btn";
+      btn.className = "btn secondary";
+      btn.textContent = "Manage Instructors";
+      btn.onclick = manageInstructorsPrompt;
+
+      if (addBtn && addBtn.parentElement) addBtn.parentElement.appendChild(btn);
+      else document.body.appendChild(btn);
+    }
+    btn.style.display = "inline-block";
+  } else {
+    const btn = document.getElementById("manage-instructors-btn");
+    if (btn) btn.style.display = "none";
+  }
+}
+
+// ========== ADMIN: ACTIVE/INACTIVE ==========
+async function setInstructorActiveByEmail(email, isActive) {
+  if (!isAdmin()) return;
+
+  email = (email || "").trim().toLowerCase();
+  if (!email) return alert("Enter an email");
+
+  const { error } = await db
+    .from("users")
+    .upsert({ email, role: "instructor", is_active: !!isActive }, { onConflict: "email" });
+
+  if (error) {
+    console.error(error);
+    alert("Failed to update instructor status: " + error.message);
+    return;
+  }
+
+  alert(`Instructor ${email} set to ${isActive ? "ACTIVE" : "INACTIVE"}.`);
+}
+
+async function manageInstructorsPrompt() {
+  if (!isAdmin()) return;
+
+  const email = prompt("Instructor email to update (e.g. name@mystemclub.org):");
+  if (!email) return;
+
+  const status = (prompt("Type: active OR inactive") || "").trim().toLowerCase();
+  if (status !== "active" && status !== "inactive") {
+    alert("Invalid status. Type exactly: active OR inactive");
+    return;
+  }
+
+  await setInstructorActiveByEmail(email, status === "active");
 }
 
 // ========== SCHOOLS ==========
@@ -308,16 +421,9 @@ function renderSchools() {
         sc = "pending";
         st = stats.pending + " Pending";
       }
-      const ss = isDeadlinePassed(s.startDeadline)
-        ? "expired"
-        : s.startDeadline
-        ? "active"
-        : "pending";
-      const es = isDeadlinePassed(s.endDeadline)
-        ? "expired"
-        : s.endDeadline
-        ? "active"
-        : "pending";
+
+      const ss = isDeadlinePassed(s.startDeadline) ? "expired" : s.startDeadline ? "active" : "pending";
+      const es = isDeadlinePassed(s.endDeadline) ? "expired" : s.endDeadline ? "active" : "pending";
 
       return `<div class="school-card" onclick="selectSchool('${s.id}')">
         <div class="school-info">
@@ -367,13 +473,16 @@ function selectSchool(id) {
   showScreen("kit-screen");
 }
 
-// ✅ add school
+// ✅ add school (admin only via UI button; inserts user_id = null)
 async function addSchool() {
+  if (!isAdmin()) return; // hard stop (even if someone calls from console)
+
   const name = document.getElementById("new-school-name").value.trim();
   if (!name) return alert("Enter school name");
 
   const newSchool = {
     name,
+    user_id: null,
     start_deadline: document.getElementById("new-school-start-deadline").value || null,
     end_deadline: document.getElementById("new-school-end-deadline").value || null,
   };
@@ -394,133 +503,10 @@ async function addSchool() {
   renderSchools();
 }
 
-function openEditSchool(id) {
-  editingSchoolId = id;
-  const s = schools.find((x) => x.id === id);
-  document.getElementById("edit-school-name").value = s.name;
-  document.getElementById("edit-school-start-deadline").value = s.startDeadline || "";
-  document.getElementById("edit-school-end-deadline").value = s.endDeadline || "";
-  openModal("edit-school-modal");
-}
-
-async function saveSchoolEdit() {
-  const id = editingSchoolId;
-  const name = document.getElementById("edit-school-name").value.trim();
-  const start_deadline = document.getElementById("edit-school-start-deadline").value || null;
-  const end_deadline = document.getElementById("edit-school-end-deadline").value || null;
-
-  const { error } = await db.from("schools").update({ name, start_deadline, end_deadline }).eq("school_id", id);
-
-  if (error) {
-    console.error(error);
-    return alert("Save failed: " + error.message);
-  }
-
-  closeModal("edit-school-modal");
-
-  const prevSchoolId = currentSchool?.id || null;
-  const prevKitId = currentKit?.id || null;
-
-  await loadData();
-  restoreSelection(prevSchoolId, prevKitId);
-
-  renderSchools();
-  if (currentSchool) {
-    document.getElementById("nav-school-name").textContent = currentSchool.name;
-    document.getElementById("nav-school-name2").textContent = currentSchool.name;
-  }
-}
-
-async function deleteSchool() {
-  if (!confirm("Delete this school and all data?")) return;
-
-  const { error } = await db.from("schools").delete().eq("school_id", editingSchoolId);
-
-  if (error) {
-    console.error(error);
-    return alert("Delete failed: " + error.message);
-  }
-
-  closeModal("edit-school-modal");
-
-  const prevSchoolId = currentSchool?.id || null;
-  const prevKitId = currentKit?.id || null;
-
-  await loadData();
-  if (prevSchoolId === editingSchoolId) {
-    currentSchool = null;
-    currentKit = null;
-  } else {
-    restoreSelection(prevSchoolId, prevKitId);
-  }
-  renderSchools();
-}
-
-function openSchoolSettings() {
-  document.getElementById("settings-school-name").value = currentSchool.name;
-  document.getElementById("settings-start-deadline").value = currentSchool.startDeadline || "";
-  document.getElementById("settings-end-deadline").value = currentSchool.endDeadline || "";
-  openModal("school-settings-modal");
-}
-
-async function saveSchoolSettings() {
-  const id = currentSchool.id;
-  const name = document.getElementById("settings-school-name").value.trim() || currentSchool.name;
-  const start_deadline = document.getElementById("settings-start-deadline").value || null;
-  const end_deadline = document.getElementById("settings-end-deadline").value || null;
-
-  const { error } = await db.from("schools").update({ name, start_deadline, end_deadline }).eq("school_id", id);
-
-  if (error) {
-    console.error(error);
-    return alert("Save failed: " + error.message);
-  }
-
-  closeModal("school-settings-modal");
-
-  const prevSchoolId = currentSchool?.id || null;
-  const prevKitId = currentKit?.id || null;
-
-  await loadData();
-  restoreSelection(prevSchoolId, prevKitId);
-
-  document.getElementById("nav-school-name").textContent = currentSchool.name;
-  document.getElementById("nav-school-name2").textContent = currentSchool.name;
-
-  renderKits();
-  updateKitUI();
-  renderSchools();
-}
-
-async function deleteCurrentSchool() {
-  if (!confirm("Delete this school?")) return;
-
-  const id = currentSchool.id;
-  const { error } = await db.from("schools").delete().eq("school_id", id);
-
-  if (error) {
-    console.error(error);
-    return alert("Delete failed: " + error.message);
-  }
-
-  closeModal("school-settings-modal");
-
-  currentSchool = null;
-  currentKit = null;
-
-  await loadData();
-  showScreen("school-screen");
-}
-
 // ========== KITS ==========
 function updateKitUI() {
-  // Hide Add Kit button for instructors
-  document.getElementById("add-kit-btn").style.display =
-    isAdmin() ? "block" : "none";
-
-  // existing code
-  document.getElementById("school-settings-btn").style.display =
-    isAdmin() ? "block" : "none";
+  document.getElementById("add-kit-btn").style.display = isAdmin() ? "block" : "none";
+  document.getElementById("school-settings-btn").style.display = isAdmin() ? "block" : "none";
 
   const alert = document.getElementById("kit-deadline-alert");
   let html = "";
@@ -535,17 +521,13 @@ function updateKitUI() {
     if (ed !== null && ed > 0 && ed <= 3)
       html += `<div class="alert-box warning">⏰ End deadline in ${ed} day${ed > 1 ? "s" : ""}</div>`;
 
-    if (
-      isDeadlinePassed(currentSchool.startDeadline) &&
-      isDeadlinePassed(currentSchool.endDeadline)
-    ) {
+    if (isDeadlinePassed(currentSchool.startDeadline) && isDeadlinePassed(currentSchool.endDeadline)) {
       html = '<div class="alert-box danger">🔒 All deadlines passed - View only</div>';
     }
   }
 
   alert.innerHTML = html;
 }
-
 
 function renderKits() {
   const grid = document.getElementById("kit-grid"),
@@ -601,20 +583,13 @@ function renderKits() {
       return `<div class="kit-card" onclick="selectKit('${k.id}')">
         <div class="kit-header">
           <span class="kit-name">${k.name || "Kit " + idx}</span>
-          ${
-            isAdmin()
-              ? `<button class="kit-menu" onclick="event.stopPropagation();openEditKit('${k.id}')">•••</button>`
-              : ``
-          }
         </div>
         ${sh}
       </div>`;
-
     })
     .join("");
 }
 
-// sid unused; kept for compatibility
 function getKitStatus(_sid, kid) {
   let endFilled = 0,
     hasIssue = false;
@@ -668,90 +643,7 @@ function selectKit(id) {
   showScreen("inventory-screen");
 }
 
-async function addKit() {
-  if (!currentSchool) return alert("Select a school first");
-
-  const name = document.getElementById("new-kit-name").value.trim() || null;
-
-  const { error } = await db.from("kits").insert({
-    school_id: currentSchool.id,
-    name,
-  });
-
-  if (error) {
-    console.error(error);
-    return alert("Add kit failed: " + error.message);
-  }
-
-  closeModal("add-kit-modal");
-  document.getElementById("new-kit-name").value = "";
-
-  const prevSchoolId = currentSchool?.id || null;
-  await loadData();
-  restoreSelection(prevSchoolId, null);
-
-  renderKits();
-  updateKitUI();
-  renderSchools();
-}
-
-function openEditKit(id) {
-  editingKitId = id;
-  document.getElementById("edit-kit-name").value = currentSchool.kits.find((k) => k.id === id).name || "";
-  openModal("edit-kit-modal");
-}
-
-async function saveKitEdit() {
-  const name = document.getElementById("edit-kit-name").value.trim() || null;
-  const kitId = editingKitId;
-
-  const { error } = await db.from("kits").update({ name }).eq("kit_id", kitId);
-
-  if (error) {
-    console.error(error);
-    return alert("Save failed: " + error.message);
-  }
-
-  closeModal("edit-kit-modal");
-
-  const prevSchoolId = currentSchool?.id || null;
-  const prevKitId = currentKit?.id || null;
-
-  await loadData();
-  restoreSelection(prevSchoolId, prevKitId);
-
-  renderKits();
-  renderSchools();
-}
-
-async function deleteKit() {
-  if (!confirm("Delete this kit?")) return;
-
-  const kitId = editingKitId;
-  const { error } = await db.from("kits").delete().eq("kit_id", kitId);
-
-  if (error) {
-    console.error(error);
-    return alert("Delete failed: " + error.message);
-  }
-
-  closeModal("edit-kit-modal");
-
-  const prevSchoolId = currentSchool?.id || null;
-  const wasCurrentKit = currentKit?.id === kitId;
-
-  await loadData();
-  restoreSelection(prevSchoolId, null);
-
-  if (wasCurrentKit) {
-    currentKit = null;
-  }
-
-  renderKits();
-  renderSchools();
-}
-
-// ========== INVENTORY ==========
+// ========== INVENTORY (rest unchanged from your previous version) ==========
 function updateInventoryUI() {
   const canS = canEditSemester("start"),
     canE = canEditSemester("end"),
@@ -827,9 +719,7 @@ function renderPart(part, canE) {
   let badge = '<span class="part-badge empty">—</span>';
   if (num !== null) {
     badge =
-      num >= part.expected
-        ? '<span class="part-badge ok">OK</span>'
-        : `<span class="part-badge missing">-${part.expected - num}</span>`;
+      num >= part.expected ? '<span class="part-badge ok">OK</span>' : `<span class="part-badge missing">-${part.expected - num}</span>`;
   }
 
   const cat = CATEGORIES.find((c) => c.parts.includes(part));
@@ -839,11 +729,7 @@ function renderPart(part, canE) {
   return `<div class="part-row" data-part="${part.id}">
     <div class="part-info">
       <div class="part-icon">
-        ${
-          part.image
-            ? `<img src="${part.image}" alt="${part.name}" class="part-img">`
-            : (cat?.icon || "📦")
-        }
+        ${part.image ? `<img src="${part.image}" alt="${part.name}" class="part-img">` : (cat?.icon || "📦")}
       </div>
       <div class="part-details">
         <div class="part-name">${part.name}</div>
@@ -874,7 +760,6 @@ function adjust(pid, delta) {
 
   let val = pend[currentSemester] !== undefined ? pend[currentSemester] : d[currentSemester] ?? "";
   val = val === "" ? part.expected : parseInt(val);
-
   val = Math.max(0, Math.min(val + delta, part.expected));
 
   if (!pendingChanges[key]) pendingChanges[key] = {};
@@ -897,8 +782,7 @@ function handleInput(inp) {
   let val = inp.value.trim();
 
   if (!pendingChanges[key]) pendingChanges[key] = {};
-  pendingChanges[key][currentSemester] =
-    val === "" ? "" : Math.max(0, Math.min(parseInt(val) || 0, part.expected));
+  pendingChanges[key][currentSemester] = val === "" ? "" : Math.max(0, Math.min(parseInt(val) || 0, part.expected));
 
   hasUnsavedChanges = true;
   updateSaveStatus();
@@ -924,7 +808,7 @@ function updateSaveStatus() {
   }
 }
 
-// ✅ Save to part_counts (directly using kit_id)
+// ✅ Save to part_counts
 async function saveChanges() {
   if (!currentKit) return;
 
@@ -964,6 +848,8 @@ async function saveChanges() {
       part_id,
       start_actual,
       end_actual,
+      last_updated_by: currentUserId || null,
+      last_updated_at: new Date().toISOString(),
     });
   }
 
@@ -974,9 +860,7 @@ async function saveChanges() {
     return;
   }
 
-  const { error } = await db.from("part_counts").upsert(rows, {
-    onConflict: "kit_id,part_id",
-  });
+  const { error } = await db.from("part_counts").upsert(rows, { onConflict: "kit_id,part_id" });
 
   if (error) {
     console.error(error);
@@ -1031,15 +915,22 @@ document.querySelectorAll(".modal-overlay").forEach((m) =>
 );
 
 // ========== INIT ==========
-// NOTE: we DO NOT call loadData() before we restore saved user/role.
-// Calling it too early would load unfiltered data (userRole/currentUser are null).
 (async () => {
   const savedUser = localStorage.getItem("js_user"),
     savedRole = localStorage.getItem("js_role");
 
   if (savedUser && savedRole) {
-    currentUser = savedUser; // full email
+    currentUser = savedUser;
     userRole = savedRole;
+
+    await ensureCurrentUserId();
+
+    // Block inactive instructors
+    if (userRole === "instructor" && currentUserActive === false) {
+      alert("Your instructor access is inactive. Please contact an admin.");
+      logout();
+      return;
+    }
 
     await loadData();
     showScreen("school-screen");
@@ -1069,11 +960,19 @@ document.getElementById("login-form").addEventListener("submit", async function 
     return;
   }
 
-  // ✅ store FULL email now (so it matches users.email)
   currentUser = email;
 
   localStorage.setItem("js_user", currentUser);
   localStorage.setItem("js_role", userRole);
+
+  await ensureCurrentUserId();
+
+  // Block inactive instructors
+  if (userRole === "instructor" && currentUserActive === false) {
+    alert("Your instructor access is inactive. Please contact an admin.");
+    logout();
+    return;
+  }
 
   await loadData();
   showScreen("school-screen");
