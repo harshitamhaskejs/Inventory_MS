@@ -14,7 +14,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const PASSWORDS = { admin: "admin2025", instructor: "instructor2025" };
 
 const AIRTABLE_INVITE_URL =
-  "https://airtable.com/invite/l?inviteId=inv3WPRC8h2ecloHc&inviteToken=2029a4b7d5e8fe0a9ea14242f7ca3f4e6b64f4377db588004ca8ef44af8eda5e&utm_medium=email&utm_source=product_team&utm_content=transactional-alerts";
+  "https://airtable.com/appH63nLT8wsF37OE/shrlW2aVa9EJzqQET";
 
 // ========== PARTS ==========
 const CATEGORIES = [
