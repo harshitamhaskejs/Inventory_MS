@@ -519,6 +519,45 @@ async function addSchool() {
   renderSchools();
 }
 
+// Add kit to current school
+// Add kit to current school
+async function addKit() {
+  if (!currentSchool) return;
+
+  const name = document.getElementById("new-kit-name").value.trim();
+
+  const newKit = {
+    school_id: currentSchool.id,
+    name: name || null,
+  };
+
+  const { error } = await db.from("kits").insert(newKit);
+
+  if (error) {
+    console.error(error);
+    return alert("Add kit failed: " + error.message);
+  }
+
+  closeModal("add-kit-modal");
+  document.getElementById("new-kit-name").value = "";
+
+  // Save current selection
+  const prevSchoolId = currentSchool?.id || null;
+
+  // Reload data
+  await loadData();
+
+  // Restore selected school
+  if (prevSchoolId) {
+    currentSchool = schools.find((s) => s.id === prevSchoolId) || null;
+  }
+
+  // Re-render
+  renderKits();
+}
+
+
+
 // ========== KITS ==========
 function updateKitUI() {
   document.getElementById("add-kit-btn").style.display = "block";
