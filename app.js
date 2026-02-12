@@ -521,7 +521,7 @@ async function addSchool() {
 
 // ========== KITS ==========
 function updateKitUI() {
-  document.getElementById("add-kit-btn").style.display = isAdmin() ? "block" : "none";
+  document.getElementById("add-kit-btn").style.display = "block";
   document.getElementById("school-settings-btn").style.display = isAdmin() ? "block" : "none";
 
   const alert = document.getElementById("kit-deadline-alert");
