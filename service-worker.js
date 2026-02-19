@@ -1,10 +1,10 @@
 const CACHE_NAME = "ims-cache-v1";
 const ASSETS = [
-  "/",
-  "/index.html",
-  "/app.js",
-  "/manifest.json",
-  "/assets/logo.png"
+  "./",
+  "./index.html",
+  "./app.js",
+  "./manifest.json",
+  "./assets/logo.png"
 ];
 
 self.addEventListener("install", (e) => {
