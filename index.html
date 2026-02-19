@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>JerseyStem Inventory</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Inventory">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <meta name="theme-color" content="#58a6ff">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
@@ -536,7 +542,41 @@
       color: var(--text-muted);
     }
 
+    /* Prevent iOS input zoom */
+    input, select, textarea {
+      font-size: 16px !important;
+    }
 
+    /* Faster tap response */
+    * {
+      touch-action: manipulation;
+    }
+
+    /* Safe area for notched phones */
+    .footer {
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    /* Prevent content hiding under fixed footer */
+    .categories {
+      padding-bottom: 140px;
+    }
+
+    /* Hide scrollbar on filters */
+    .filters {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .filters::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Single column kits on very small screens */
+    @media (max-width: 360px) {
+      .kit-grid {
+        grid-template-columns: 1fr;
+      }
+    }
 
   </style>
 </head>
@@ -825,5 +865,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.js")
+      .then(() => console.log("SW registered"))
+      .catch((e) => console.error("SW error:", e));
+  }
+</script>
 </body>
 </html>
