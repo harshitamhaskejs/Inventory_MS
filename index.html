@@ -866,11 +866,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
   <script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./service-worker.js")
-      .then(() => console.log("SW registered"))
-      .catch((e) => console.error("SW error:", e));
-  }
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
+        .then(() => console.log("SW registered"))
+        .catch((e) => console.error("SW error:", e));
+    }
+  </script>
 </script>
 </body>
 </html>

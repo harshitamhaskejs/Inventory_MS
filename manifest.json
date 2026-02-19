@@ -2,20 +2,13 @@
   "name": "JerseyStem Inventory",
   "short_name": "Inventory",
   "description": "LEGO Spike Prime kit inventory tracker",
-  "start_url": "/Inventory_MS/index.html",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#58a6ff",
   "icons": [
-    {
-      "src": "assets/logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/logo.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "assets/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/logo.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

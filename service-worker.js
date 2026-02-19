@@ -1,18 +1,19 @@
-const CACHE_NAME = "ims-cache-v1";
+const CACHE_NAME = "ims-cache-v3"; // bump this every time you change SW
 const ASSETS = [
-  "/Inventory_MS/index.html",
-  "/Inventory_MS/app.js",
-  "/Inventory_MS/manifest.json",
-  "/Inventory_MS/assets/logo.png"
+  "./",
+  "./index.html",
+  "./app.js",
+  "./manifest.json",
+  "./assets/logo.png"
 ];
 
+// Install: pre-cache core assets
 self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+  e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 
+// Activate: delete old caches
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -22,8 +23,21 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// Fetch:
+// - For navigations, always serve index.html (app shell)
+// - For others, cache-first
 self.addEventListener("fetch", (e) => {
+  const req = e.request;
+
+  // App shell routing for standalone PWA navigations
+  if (req.mode === "navigate") {
+    e.respondWith(
+      caches.match("./index.html").then((cached) => cached || fetch("./index.html"))
+    );
+    return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
