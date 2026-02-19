@@ -1,6 +1,5 @@
 const CACHE_NAME = "ims-cache-v1";
 const ASSETS = [
-  "/Inventory_MS/",
   "/Inventory_MS/index.html",
   "/Inventory_MS/app.js",
   "/Inventory_MS/manifest.json",
