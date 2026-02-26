@@ -1,4 +1,4 @@
-const CACHE_NAME = "ims-cache-v3"; // bump this every time you change SW
+const CACHE_NAME = "ims-cache-v4"; // bump this every time you change SW
 const ASSETS = [
   "./",
   "./index.html",
@@ -29,15 +29,26 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
 
-  // App shell routing for standalone PWA navigations
   if (req.mode === "navigate") {
     e.respondWith(
-      caches.match("./index.html").then((cached) => cached || fetch("./index.html"))
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
+          return res;
+        })
+        .catch(() => caches.match("./index.html"))
     );
     return;
   }
 
   e.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req))
+    fetch(req)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });

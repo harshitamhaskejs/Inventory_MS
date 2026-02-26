@@ -900,7 +900,16 @@
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
-        .then(() => console.log("SW registered"))
+        .then((reg) => {
+          console.log("SW registered");
+
+          // FORCE UPDATE SERVICE WORKER
+          reg.update();
+
+          navigator.serviceWorker.getRegistrations().then(regs => {
+            regs.forEach(r => r.update());
+          });
+        })
         .catch((e) => console.error("SW error:", e));
     }
   </script>
