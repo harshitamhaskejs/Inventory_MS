@@ -1063,24 +1063,38 @@ document.querySelectorAll(".modal-overlay").forEach((m) =>
 
 // ========== INIT ==========
 (async () => {
-  const savedUser = localStorage.getItem("js_user"),
-    savedRole = localStorage.getItem("js_role");
+  const savedUser = localStorage.getItem("js_user");
 
-  if (savedUser && savedRole) {
+  if (savedUser) {
     currentUser = savedUser;
-    userRole = savedRole;
 
-    await ensureCurrentUserId();
+    // fetch role securely from database
+    const { data, error } = await db
+      .from("users")
+      .select("user_id, role, is_active")
+      .eq("email", currentUser)
+      .limit(1);
 
-    // Block inactive instructors
-    if (userRole === "instructor" && currentUserActive === false) {
-      alert("Your instructor access is inactive. Please contact an admin.");
+    if (error || !data.length) {
       logout();
       return;
     }
 
+    const user = data[0];
+
+    if (!user.is_active) {
+      alert("Your account is inactive.");
+      logout();
+      return;
+    }
+
+    userRole = user.role;
+    currentUserId = user.user_id;
+
+    localStorage.setItem("js_role", userRole);
+
     await loadData();
-    // ✅ go to the new menu after login
+
     showScreen("menu-screen");
   } else {
     showScreen("login-screen");
@@ -1090,8 +1104,8 @@ document.querySelectorAll(".modal-overlay").forEach((m) =>
 document.getElementById("login-form").addEventListener("submit", async function (e) {
   e.preventDefault();
 
-  const email = document.getElementById("email-input").value.trim().toLowerCase(),
-    pw = document.getElementById("password-input").value;
+  const email = document.getElementById("email-input").value.trim().toLowerCase();
+  const pw = document.getElementById("password-input").value;
 
   document.getElementById("email-error").classList.remove("show");
   document.getElementById("password-error").classList.remove("show");
@@ -1101,29 +1115,40 @@ document.getElementById("login-form").addEventListener("submit", async function 
     return;
   }
 
-  if (pw === PASSWORDS.admin) userRole = "admin";
-  else if (pw === PASSWORDS.instructor) userRole = "instructor";
-  else {
+  // basic password gate (optional)
+  if (pw !== PASSWORDS.admin && pw !== PASSWORDS.instructor) {
     document.getElementById("password-error").classList.add("show");
     return;
   }
 
+  // fetch role from database
+  const { data, error } = await db
+    .from("users")
+    .select("user_id, role, is_active")
+    .eq("email", email)
+    .limit(1);
+
+  if (error || !data.length) {
+    alert("User not found. Contact admin.");
+    return;
+  }
+
+  const user = data[0];
+
+  if (!user.is_active) {
+    alert("Your account is inactive.");
+    return;
+  }
+
   currentUser = email;
+  userRole = user.role;
+  currentUserId = user.user_id;
 
   localStorage.setItem("js_user", currentUser);
   localStorage.setItem("js_role", userRole);
 
-  await ensureCurrentUserId();
-
-  // Block inactive instructors
-  if (userRole === "instructor" && currentUserActive === false) {
-    alert("Your instructor access is inactive. Please contact an admin.");
-    logout();
-    return;
-  }
-
   await loadData();
-  // ✅ go to the new menu after login
+
   showScreen("menu-screen");
 });
 
