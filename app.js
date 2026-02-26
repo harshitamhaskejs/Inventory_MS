@@ -37,8 +37,11 @@ async function registerPush() {
 
     const messaging = messagingLib.getMessaging(app);
 
+    const registration = await navigator.serviceWorker.register("./service-worker.js");
+
     const token = await messagingLib.getToken(messaging, {
       vapidKey: "BCBE3vSV3Q3zYUiu-PDGGJAwGTUsOg-SnWgNO7nPcbTskoKWcDtBRwjnLgA-1FPW48xY1GW_G1NobTRBSV8KZVM",
+      serviceWorkerRegistration: registration,
     });
 
     if (!token) return;
