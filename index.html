@@ -334,6 +334,26 @@
     .logout-btn:hover { color:var(--text); }
 
     .filters { display:flex; gap:8px; padding:0 20px; margin-bottom:16px; overflow-x:auto; }
+    /* Kits header layout fix */
+    .kits-header {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 0 20px;
+      margin-bottom: 16px;
+    }
+
+    #kit-deadline-alert {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    /* Filters inside kits header */
+    #kit-filters {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
     .filter-btn { padding:8px 14px; background:rgba(22,27,34,0.84); border:1px solid rgba(255,255,255,0.12); border-radius:20px; font-size:13px; color:var(--text-muted); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px; font-family:inherit; backdrop-filter: blur(12px); }
     .filter-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
     .filter-btn .count { background:rgba(255,255,255,0.2); padding:2px 7px; border-radius:10px; font-size:11px; }
@@ -719,12 +739,24 @@
           <button class="btn btn-small" id="school-settings-btn" onclick="openSchoolSettings()" style="display:none;">⚙️ Settings</button>
         </div>
       </div>
-      <div id="kit-deadline-alert"></div>
-      <div class="filters" id="kit-filters">
-        <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
-        <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">Pending <span class="count" id="pending-count">0</span></button>
-        <button class="filter-btn" data-filter="issues" onclick="setFilter('issues')">Issues <span class="count" id="issues-count">0</span></button>
-        <button class="filter-btn" data-filter="complete" onclick="setFilter('complete')">Complete</button>
+      <div class="kits-header">
+        <div id="kit-deadline-alert"></div>
+
+        <div class="filters" id="kit-filters">
+          <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+
+          <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">
+            Pending <span class="count" id="pending-count">0</span>
+          </button>
+
+          <button class="filter-btn" data-filter="issues" onclick="setFilter('issues')">
+            Issues <span class="count" id="issues-count">0</span>
+          </button>
+
+          <button class="filter-btn" data-filter="complete" onclick="setFilter('complete')">
+            Complete
+          </button>
+        </div>
       </div>
       <div class="list-container">
         <div class="kit-grid" id="kit-grid"></div>
