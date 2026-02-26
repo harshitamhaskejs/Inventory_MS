@@ -569,6 +569,10 @@ function openSchoolSettings() {
 async function addKit() {
   if (!currentSchool) return;
 
+  if (!isAdmin() && currentSchool.user_id !== currentUserId) {
+    alert("Not allowed");
+    return;
+  }
   const name = document.getElementById("new-kit-name").value.trim();
 
   const { data, error } = await db
@@ -958,6 +962,10 @@ function updateSaveStatus() {
 // ✅ Save to part_counts
 async function saveChanges() {
   if (!currentKit) return;
+  if (!isAdmin() && currentSchool.user_id !== currentUserId) {
+    alert("Not allowed");
+    return;
+  }
 
   const rows = [];
 
