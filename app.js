@@ -446,7 +446,7 @@ function renderSchools() {
           <div class="school-header"><h3>${s.name}</h3>
           ${
             isAdmin()
-              ? `<button class="kit-menu" onclick="event.stopPropagation();openEditSchool('${s.id}')">⚙️</button>`
+              ? `<button class="kit-menu" onclick="event.stopPropagation();deleteSchool('${s.id}')">🗑️</button>`
               : ""
           }</div>
           <div class="school-meta">
@@ -525,6 +525,45 @@ async function addSchool() {
   renderSchools();
 }
 
+// DELETE SCHOOL (admin only)
+async function deleteSchool(schoolId) {
+  if (!isAdmin()) return;
+
+  if (!confirm("Delete this school and ALL its kits and inventory? This cannot be undone.")) return;
+
+  // delete part_counts first (FK dependency)
+  const { data: kits } = await db
+    .from("kits")
+    .select("kit_id")
+    .eq("school_id", schoolId);
+
+  if (kits && kits.length) {
+    const kitIds = kits.map(k => k.kit_id);
+
+    await db.from("part_counts").delete().in("kit_id", kitIds);
+    await db.from("part_count_audit").delete().in("kit_id", kitIds);
+    await db.from("kits").delete().in("kit_id", kitIds);
+  }
+
+  const { error } = await db
+    .from("schools")
+    .delete()
+    .eq("school_id", schoolId);
+
+  if (error) {
+    alert("Delete failed: " + error.message);
+    return;
+  }
+
+  await loadData();
+  renderSchools();
+}
+
+
+function openSchoolSettings() {
+  alert("Settings coming soon.");
+}
+
 // Add kit to current school
 // Add kit to current school
 async function addKit() {
@@ -554,6 +593,33 @@ async function addKit() {
   await loadData();
 
   currentSchool = schools.find((s) => s.id === schoolId);
+
+  renderKits();
+}
+
+async function deleteKit(kitId) {
+  if (!isAdmin()) return;
+
+  if (!confirm("Delete this kit?")) return;
+
+  await db.from("part_counts").delete().eq("kit_id", kitId);
+  await db.from("part_count_audit").delete().eq("kit_id", kitId);
+
+  const { error } = await db
+    .from("kits")
+    .delete()
+    .eq("kit_id", kitId);
+
+  if (error) {
+    alert("Delete failed: " + error.message);
+    return;
+  }
+
+  const prevSchoolId = currentSchool?.id;
+
+  await loadData();
+
+  currentSchool = schools.find(s => s.id === prevSchoolId);
 
   renderKits();
 }
@@ -640,6 +706,7 @@ function renderKits() {
       return `<div class="kit-card" onclick="selectKit('${k.id}')">
         <div class="kit-header">
           <span class="kit-name">${k.name || "Kit " + idx}</span>
+          ${isAdmin() ? `<button class="kit-menu" onclick="event.stopPropagation();deleteKit('${k.id}')">🗑️</button>` : ""}
         </div>
         ${sh}
       </div>`;
