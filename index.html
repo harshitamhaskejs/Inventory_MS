@@ -909,14 +909,6 @@
         .catch((e) => console.error("SW error:", e));
 
 
-      // Register Firebase messaging service worker (REQUIRED for push)
-      navigator.serviceWorker.register("./firebase-messaging-sw.js")
-        .then((reg) => {
-          console.log("Firebase SW registered");
-          reg.update();
-        })
-        .catch((e) => console.error("Firebase SW error:", e));
-
     }
   </script>
 </script>

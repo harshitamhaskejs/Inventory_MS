@@ -1,3 +1,24 @@
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+
+firebase.initializeApp({
+  apiKey: "AIzaSyAVEEyXIgAgseGFEPt4i6nezAS_6TXXuKs",
+  authDomain: "imsapp-619b6.firebaseapp.com",
+  projectId: "imsapp-619b6",
+  messagingSenderId: "547704030976",
+  appId: "1:547704030976:web:d5c5ad3545b213fd77d5e5",
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage(function(payload) {
+  self.registration.showNotification(payload.notification.title, {
+    body: payload.notification.body,
+    icon: "./assets/logo.png"
+  });
+});
+
+
 const CACHE_NAME = "ims-cache-v4"; // bump this every time you change SW
 const ASSETS = [
   "./",
@@ -50,5 +71,25 @@ self.addEventListener("fetch", (e) => {
         return res;
       })
       .catch(() => caches.match(req))
+  );
+});
+
+self.addEventListener("notificationclick", function(event) {
+  event.notification.close();
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then(function(clientList) {
+
+        for (const client of clientList) {
+          if (client.url.includes("index.html") && "focus" in client) {
+            return client.focus();
+          }
+        }
+
+        if (clients.openWindow) {
+          return clients.openWindow("./");
+        }
+      })
   );
 });
