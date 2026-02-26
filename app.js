@@ -1,7 +1,7 @@
 // ========== SUPABASE ==========
-const SUPABASE_URL = "https://dnzafmggkmawnshljyku.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuemFmbWdna21hd25zaGxqeWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDgxMjYsImV4cCI6MjA4NDY4NDEyNn0.JWcpX3fgJW1kt6KI21Xr-cJRRd2hzxYAO2hptWibMTQ";
+const SUPABASE_URL = "https://yubbtxpvqdoyvdoadxjx.supabase.co";
+const SUPABASE_ANON_KEY = 
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1YmJ0eHB2cWRveXZkb2FkeGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMzE0NDcsImV4cCI6MjA4NzcwNzQ0N30.nwkHXuqSMl0gLyBIf1lp95mpYLXkSsBvpilnAYhxchg";
 
 if (!window.supabase) {
   alert("Supabase library not loaded. Ensure supabase-js v2 CDN is included before app.js.");
