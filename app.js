@@ -491,31 +491,37 @@ function selectSchool(id) {
 
 // ✅ add school (admin only via UI button; inserts user_id = null)
 async function addSchool() {
-  if (!isAdmin()) return; // hard stop (even if someone calls from console)
+  if (!isAdmin()) return;
 
   const name = document.getElementById("new-school-name").value.trim();
-  if (!name) return alert("Enter school name");
+  if (!name) {
+    alert("Enter school name");
+    return;
+  }
 
-  const newSchool = {
-    name,
-    user_id: null,
-    start_deadline: document.getElementById("new-school-start-deadline").value || null,
-    end_deadline: document.getElementById("new-school-end-deadline").value || null,
-  };
+  const { data, error } = await db
+    .from("schools")
+    .insert({
+      name: name,
+      user_id: currentUserId || null,
+      start_deadline:
+        document.getElementById("new-school-start-deadline").value || null,
+      end_deadline:
+        document.getElementById("new-school-end-deadline").value || null,
+    })
+    .select();
 
-  const { error } = await db.from("schools").insert(newSchool);
+  console.log("Add school result:", data, error);
 
   if (error) {
-    console.error(error);
-    return alert("Add school failed: " + error.message);
+    alert(error.message);
+    return;
   }
 
   closeModal("add-school-modal");
-  document.getElementById("new-school-name").value = "";
-  document.getElementById("new-school-start-deadline").value = "";
-  document.getElementById("new-school-end-deadline").value = "";
 
   await loadData();
+
   renderSchools();
 }
 
@@ -526,34 +532,29 @@ async function addKit() {
 
   const name = document.getElementById("new-kit-name").value.trim();
 
-  const newKit = {
-    school_id: currentSchool.id,
-    name: name || null,
-  };
+  const { data, error } = await db
+    .from("kits")
+    .insert({
+      school_id: currentSchool.id,
+      name: name || null,
+    })
+    .select();
 
-  const { error } = await db.from("kits").insert(newKit);
+  console.log("Add kit result:", data, error);
 
   if (error) {
-    console.error(error);
-    return alert("Add kit failed: " + error.message);
+    alert(error.message);
+    return;
   }
 
   closeModal("add-kit-modal");
-  document.getElementById("new-kit-name").value = "";
 
-  // Save current selection
-  const prevSchoolId = currentSchool?.id || null;
+  const schoolId = currentSchool.id;
 
-  // Reload data
   await loadData();
 
-  // Restore selected school
-  if (prevSchoolId) {
-    currentSchool = schools.find((s) => s.id === prevSchoolId) || null;
-  }
+  currentSchool = schools.find((s) => s.id === schoolId);
 
-  // Re-render
-  renderSchools();
   renderKits();
 }
 
