@@ -10,6 +10,47 @@ if (!window.supabase) {
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+async function registerPush() {
+
+  if (!("Notification" in window)) return;
+
+  const permission = await Notification.requestPermission();
+
+  if (permission !== "granted") return;
+
+  const firebase = await import(
+    "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"
+  );
+
+  const messagingLib = await import(
+    "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js"
+  );
+
+  const app = firebase.initializeApp({
+    apiKey: "AIzaSyAVEEyXIgAgseGFEPt4i6nezAS_6TXXuKs",
+    authDomain: "imsapp-619b6.firebaseapp.com",
+    projectId: "imsapp-619b6",
+    messagingSenderId: "547704030976",
+    appId: "1:547704030976:web:d5c5ad3545b213fd77d5e5",
+  });
+
+  const messaging = messagingLib.getMessaging(app);
+
+  const token = await messagingLib.getToken(messaging, {
+    vapidKey:
+      "BCBE3vSV3Q3zYUiu-PDGGJAwGTUsOg-SnWgNO7nPcbTskoKWcDtBRwjnLgA-1FPW48xY1GW_G1NobTRBSV8KZVM",
+  });
+
+  if (!token) return;
+
+  await db.from("push_tokens").upsert({
+    email: currentUser,
+    token: token,
+  });
+
+  console.log("Push registered:", token);
+}
+
 // ========== CONFIG ==========
 const PASSWORDS = { admin: "admin2025", instructor: "instructor2025" };
 
@@ -1102,6 +1143,7 @@ document.querySelectorAll(".modal-overlay").forEach((m) =>
     localStorage.setItem("js_role", userRole);
 
     await loadData();
+    await registerPush(); 
 
     showScreen("menu-screen");
   } else {
@@ -1156,6 +1198,7 @@ document.getElementById("login-form").addEventListener("submit", async function 
   localStorage.setItem("js_role", userRole);
 
   await loadData();
+  await registerPush();
 
   showScreen("menu-screen");
 });

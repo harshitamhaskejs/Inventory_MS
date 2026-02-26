@@ -899,18 +899,24 @@
   <script src="app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
+
+      // Register your existing PWA service worker
       navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
         .then((reg) => {
-          console.log("SW registered");
-
-          // FORCE UPDATE SERVICE WORKER
+          console.log("Main SW registered");
           reg.update();
-
-          navigator.serviceWorker.getRegistrations().then(regs => {
-            regs.forEach(r => r.update());
-          });
         })
         .catch((e) => console.error("SW error:", e));
+
+
+      // Register Firebase messaging service worker (REQUIRED for push)
+      navigator.serviceWorker.register("./firebase-messaging-sw.js")
+        .then((reg) => {
+          console.log("Firebase SW registered");
+          reg.update();
+        })
+        .catch((e) => console.error("Firebase SW error:", e));
+
     }
   </script>
 </script>
