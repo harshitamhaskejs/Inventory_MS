@@ -52,9 +52,11 @@ async function registerPush() {
     });
 
     console.log("Push registered:", token);
+    alert("Push SUCCESS - token saved!");
 
   } catch (err) {
     console.error("Push registration failed:", err);
+    alert("Push debug: " + err.message + " | " + err.code);
   }
 }
 
