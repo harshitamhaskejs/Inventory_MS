@@ -49,7 +49,7 @@ async function registerPush() {
     const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
 
     const token = await messagingLib.getToken(messaging, {
-      vapidKey: "BCBE3vSV3Q3zYUiu-PDGGJAwGTUsOg-SnWgNO7nPcbTskoKWcDtBRwjnLgA-1FPW48xY1GW_G1NobTRBSV8KZVM",
+      vapidKey: "BGX4KzASHBw1ISMkLUhUEx6KXEtFMpFmWfa4KZFkFXZvvZPy_SHCAVF18W-WB1N0CK-9YPDU29HR9bqAzYjoG3Y",
       serviceWorkerRegistration: registration,
     });
 
