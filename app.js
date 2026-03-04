@@ -37,6 +37,15 @@ async function registerPush() {
 
     const messaging = messagingLib.getMessaging(app);
 
+    // Unregister any old service workers first
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const reg of registrations) {
+      if (!reg.active?.scriptURL.includes("firebase-messaging-sw.js")) {
+        await reg.unregister();
+        console.log("Unregistered old SW:", reg.active?.scriptURL);
+      }
+    }
+
     const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
 
     const token = await messagingLib.getToken(messaging, {
