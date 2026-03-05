@@ -57,10 +57,10 @@ async function registerPush() {
 
     if (!token) return;
 
-    await db.from("push_tokens").upsert({
-      email: currentUser,
-      token: token,
-    });
+    await db.from("push_tokens").upsert(
+      { email: currentUser, token: token },
+      { onConflict: "email" }
+    );
 
     console.log("Push registered:", token);
     alert("Push SUCCESS - token saved!");
