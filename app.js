@@ -61,11 +61,11 @@ async function registerPush() {
     );
 
     console.log("Push registered:", token);
-    alert("Push SUCCESS - token saved!");
+    
 
   } catch (err) {
     console.error("Push registration failed:", err);
-    alert("Push debug: " + err.message + " | " + err.code);
+    
   }
 }
 
@@ -1129,6 +1129,12 @@ document.querySelectorAll(".modal-overlay").forEach((m) =>
 );
 
 // ========== INIT ==========
+// Register service worker on page load (independent of login)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./firebase-messaging-sw.js")
+    .then(reg => console.log("SW registered:", reg.scope))
+    .catch(err => console.error("SW registration failed:", err));
+}
 (async () => {
   const savedUser = localStorage.getItem("js_user");
 
