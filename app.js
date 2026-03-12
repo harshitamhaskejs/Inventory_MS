@@ -1130,11 +1130,7 @@ document.querySelectorAll(".modal-overlay").forEach((m) =>
 
 // ========== INIT ==========
 // Register service worker on page load (independent of login)
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./firebase-messaging-sw.js")
-    .then(reg => console.log("SW registered:", reg.scope))
-    .catch(err => console.error("SW registration failed:", err));
-}
+
 (async () => {
   const savedUser = localStorage.getItem("js_user");
 

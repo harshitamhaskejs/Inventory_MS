@@ -897,20 +897,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
-  <script>
-    if ("serviceWorker" in navigator) {
 
-      // Register your existing PWA service worker
-      navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
-        .then((reg) => {
-          console.log("Main SW registered");
-          reg.update();
-        })
-        .catch((e) => console.error("SW error:", e));
-
-
-    }
-  </script>
 </script>
 </body>
 </html>
