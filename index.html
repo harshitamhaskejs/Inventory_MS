@@ -95,34 +95,36 @@
     /* Top Airtable button */
     .top-airtable {
       position: fixed;
-      top: calc(10px + env(safe-area-inset-top));
-      right: calc(10px + env(safe-area-inset-right));
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      right: calc(16px + env(safe-area-inset-right));
+      top: auto;
       z-index: 2000;
       display: none;
       width: auto;
-      padding: 10px 12px;
-      border-radius: 12px;
+      padding: 10px 16px;
+      border-radius: 20px;
       font-size: 13px;
       font-weight: 800;
       border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(22,27,34,0.84);
+      background: rgba(22,27,34,0.92);
       color: var(--text);
       cursor: pointer;
       font-family: inherit;
       backdrop-filter: blur(12px);
       line-height: 1;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
     .top-airtable:hover {
       background: rgba(28,33,40,0.88);
       border-color: rgba(88,166,255,0.55);
     }
     @media (max-width: 420px) {
-      .top-airtable{
-        right: auto;
-        left: calc(10px + env(safe-area-inset-left));
-        padding: 9px 10px;
-        font-size: 12px;
-        border-radius: 11px;
+      .top-airtable {
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        right: calc(16px + env(safe-area-inset-right));
+        left: auto;
+        padding: 10px 14px;
+        font-size: 13px;
       }
     }
 
