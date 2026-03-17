@@ -612,7 +612,7 @@
     <div class="sparkles"></div>
   </div>
 
-  <button id="airtable-top-btn" class="top-airtable" onclick="openAirtable()">Airtable</button>
+  
 
   <div class="app">
 
@@ -699,7 +699,10 @@
       <div class="header">
         <div class="header-top">
           <h1 class="page-title">Schools</h1>
-          <span class="role-badge" id="role-badge-schools">Admin</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn btn-small btn-secondary" onclick="openAirtable()" style="width:auto;">Airtable</button>
+            <span class="role-badge" id="role-badge-schools">Admin</span>
+          </div>
         </div>
       </div>
 
@@ -873,25 +876,17 @@
       if (btn) btn.textContent = isPw ? "🙈" : "👁️";
     }
 
-  function setAirtableTopVisible(){
-      const btn = document.getElementById("airtable-top-btn");
-      const login = document.getElementById("login-screen");
-      const menu = document.getElementById("menu-screen");
-      if (!btn || !login) return;
 
-      const shouldHide = login.classList.contains("active") || (menu && menu.classList.contains("active"));
-      btn.style.display = shouldHide ? "none" : "inline-flex";
-    }
 
     document.addEventListener("DOMContentLoaded", () => {
-      setAirtableTopVisible();
+      
 
       // Wrap showScreen so the airtable button updates automatically
       const originalShowScreen = window.showScreen;
       if (typeof originalShowScreen === "function") {
         window.showScreen = function(id){
           originalShowScreen(id);
-          setAirtableTopVisible();
+          
         };
       }
     });
